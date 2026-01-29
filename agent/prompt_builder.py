@@ -1019,6 +1019,120 @@ def get_text_prompt() -> str:
         a. Respond with a simple text confirmation of the booking details.
     """
 
+def build_echarts_a2ui_prompt():
+    return """
+    **ECharts 图表生成指南**
+    
+    当用户请求生成图表时，您必须使用标准的 A2UI 组件格式来渲染 ECharts 图表。
+    
+    **ECharts 组件格式**：
+    ```json
+    {
+      "id": "图表唯一ID（如chart-1）",
+      "component": {
+        "Echarts": {
+          "options": {
+            "literalObject": { /* ECharts 标准配置项 */ }
+          },
+          "width": {
+            "literalString": "100%"
+          },
+          "height": {
+            "literalString": "400px"
+          }
+        }
+      }
+    }
+    ```
+
+    **ECharts 配置项规则**：
+    1. 必须包含 title（图表标题）、xAxis、yAxis、series（数据系列）；
+    2. 支持的图表类型：bar（柱状图）、line（折线图）、pie（饼图）；
+    3. 数据需贴合餐厅场景（如按月份的预订量、按菜系的销量等）；
+    4. 配置项需符合 ECharts 5.x 官方规范，无需额外自定义函数。
+
+    **重要配置规则**：
+    - 每轮对话必须使用唯一的 surfaceId，避免与之前的对话冲突
+    - surfaceId 格式：`chart-surface-图表描述-当前时间戳`
+    - 示例：`chart-surface-bar-chart-1738064000000`
+    - 必须使用当前时间戳（毫秒）和随机字符串生成唯一的 surfaceId
+
+    **完整示例（餐厅月度预订量柱状图）**：
+    ```json
+    {
+      "beginRendering": {
+        "surfaceId": "chart-surface-bar-chart-当前时间戳",
+        "root": "chart-container",
+        "styles": {
+          "primaryColor": "#00BFFF",
+          "font": "Roboto"
+        }
+      },
+      "surfaceUpdate": {
+        "surfaceId": "chart-surface-bar-chart-当前时间戳",
+        "components": [
+          {
+            "id": "chart-container",
+            "component": {
+              "Column": {
+                "children": {
+                  "explicitList": ["chart-title", "echarts-chart"]
+                }
+              }
+            }
+          },
+          {
+            "id": "chart-title",
+            "component": {
+              "Text": {
+                "usageHint": "h2",
+                "text": {
+                  "literalString": "餐厅月度预订量统计"
+                }
+              }
+            }
+          },
+          {
+            "id": "echarts-chart",
+            "component": {
+              "Echarts": {
+                "options": {
+                  "literalObject": {
+                    "title": { "text": "月度预订量", "left": "center" },
+                    "xAxis": { 
+                      "type": "category", 
+                      "data": ["1月", "2月", "3月", "4月", "5月", "6月"] 
+                    },
+                    "yAxis": { "type": "value" },
+                    "series": [{
+                      "name": "预订量",
+                      "type": "bar",
+                      "data": [120, 200, 150, 80, 250, 180]
+                    }],
+                    "tooltip": { "trigger": "axis" }
+                  }
+                },
+                "width": {
+                  "literalString": "100%"
+                },
+                "height": {
+                  "literalString": "400px"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+    ```
+    
+    **重要提示**：
+    - 确保所有组件属性都遵循 A2UI 规范格式（使用 `literalString`、`literalObject` 或 `path`）
+    - 确保 Echarts 组件包含在 surfaceUpdate 的 components 数组中
+    - 使用标准的 A2UI 组件结构（beginRendering + surfaceUpdate）
+    - 为图表提供有意义的标题和描述
+    - 确保数据与餐厅业务相关
+    """
 
 if __name__ == "__main__":
     # Example of how to use the prompt builder

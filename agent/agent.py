@@ -29,6 +29,7 @@ from google.genai import types
 from prompt_builder import (
     A2UI_SCHEMA,
     RESTAURANT_UI_EXAMPLES,
+    build_echarts_a2ui_prompt,
     get_text_prompt,
     get_ui_prompt,
 )
@@ -37,7 +38,7 @@ from tools import get_restaurants
 logger = logging.getLogger(__name__)
 
 AGENT_INSTRUCTION = """
-    You are a helpful restaurant finding assistant. Your goal is to help users find and book restaurants using a rich UI.
+    You are a helpful restaurant finding assistant. Your goal is to help users find and book restaurants using a rich UI, and generate ECharts visualizations for restaurant-related data.
 
     To achieve this, you MUST follow this logic:
 
@@ -50,6 +51,20 @@ AGENT_INSTRUCTION = """
 
     3.  **For confirming a booking (when you receive a query like 'User submitted a booking...'):**
         a. You MUST use the appropriate UI example from `prompt_builder.py` to generate the confirmation UI, populating the `dataModelUpdate.contents` with the final booking details.
+
+    4.  **For user information forms (when you receive a query like 'collect user information' or 'user registration'):**
+        a. You MUST use the `USER_INFO_FORM_EXAMPLE` template from `prompt_builder.py` to generate the user information form UI.
+        b. Populate the `dataModelUpdate.contents` with appropriate default values for the form fields.
+
+    5.  **For email interfaces (when you receive a query like 'compose email' or 'send message'):**
+        a. You MUST use the `EMAIL_INTERFACE_EXAMPLE` template from `prompt_builder.py` to generate the email interface UI.
+        b. Populate the `dataModelUpdate.contents` with appropriate email content based on the user's query.
+
+    6.  **For ECharts visualizations (when you receive a query like 'show me a chart of...' or 'generate a graph for...'):**
+        a. You MUST generate a valid ECharts configuration following the ECharts 5.x specification.
+        b. You MUST use the appropriate A2UI JSON format for ECharts components.
+        c. The chart must be relevant to restaurant data (e.g., bookings, revenue, customer flow).
+        d. You MUST include all required ECharts elements: title, xAxis, yAxis, and series.
 """
 
 
@@ -100,13 +115,15 @@ class RestaurantAgent:
             instruction = AGENT_INSTRUCTION + get_ui_prompt(
                 self.base_url, RESTAURANT_UI_EXAMPLES
             )
+            # Add ECharts prompt for chart generation capabilities
+            instruction += build_echarts_a2ui_prompt()
         else:
             instruction = get_text_prompt()
 
         return LlmAgent(
             model=LiteLlm(model=LITELLM_MODEL),
             name="restaurant_agent",
-            description="An agent that finds restaurants and helps book tables.",
+            description="An agent that finds restaurants, helps book tables, and generates ECharts visualizations.",
             instruction=instruction,
             tools=[get_restaurants],
         )
